@@ -1,5 +1,5 @@
 <head>
-<title>Runner</title>
+<title>Platformer</title>
 </head>
 
 <body bgcolor="#2f4f4f">
@@ -9,6 +9,8 @@
 <center>
 
 <script>
+
+//alert("Welcome to Platformer! Made by Josh Noel!");
 
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
@@ -75,7 +77,6 @@ function Player(x, y) {
 		if (keysDown[32] && this.onGround) {
 			this.yvel = -16
 			keysDown[32] = false;
-			this.onGround = false;
 		}
 		if (keysDown[65]) {
 			this.xvel = -8;
@@ -93,6 +94,7 @@ function Player(x, y) {
 				}
 }
 		}
+		this.onGround = false;
 		this.x += this.xvel;
 		this.collide(this.xvel, 0);
 		this.y += this.yvel;
