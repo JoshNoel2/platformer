@@ -1,0 +1,185 @@
+<head>
+<title>Runner</title>
+</head>
+
+<body bgcolor="#2f4f4f">
+<center>
+<br><br><br>
+<canvas id="canvas" width="637" height="480">
+<center>
+
+<script>
+
+var canvas = document.getElementById("canvas");
+var ctx = canvas.getContext("2d");
+
+canvas.width  = window.innerWidth - 100;
+canvas.height = window.innerHeight - 100;
+
+var player;
+var camerax, cameray = 0;
+var blocks = [];
+var map = [
+"x                                                                                x   x  xxxxx  x   x      x       x  xxxxx  x   x  x          x",
+"x                                                                                x   x  x   x  x   x      x   x   x    x    xx  x  x          x",
+"x                                                                                xxxxx  x   x  x   x       x x x x     x    x x x  x          x",
+"x                                                                                  x    x   x  x   x       x x x x     x    x  xx             x",
+"x                                                                                  x    xxxxx  xxxxx        x   x    xxxxx  x   x  x          x",
+"x                                                                                                                                             x",
+"x                                                                                                                                             x",
+"x                                                    x                                                                                        x",
+"x                                 x              x                                                                                            x",
+"x                                                       x                                                                                     x",
+"x                       x                 xxx                                                                                                 x",
+"x o              xx           x                                                                                                               x",
+"xxxxxxxxxxxxxxx                                              xxxx         xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+
+]
+var mapWidth = map[0].split("").length*32;
+var mapHeight = map.length*32;
+
+for (i = 0; i < map.length; i++) { 
+	for (i1 = 0; i1 < map[i].split("").length; i1++) { 
+		if (map[i].split("")[i1] == "x") {
+			new Block(i1*32, i*32);
+		}
+		if (map[i].split("")[i1] == "o") {
+			new Player(i1*32, i*32);
+		}
+	}
+}
+
+function collision(rect1, rect2) {
+	if (rect1.x < rect2.x + rect2.width &&
+	rect1.x + rect1.width > rect2.x &&
+	rect1.y < rect2.y + rect2.height &&
+	rect1.height + rect1.y > rect2.y) {
+		return true;
+	}
+	return false;
+}
+
+function Player(x, y) {
+	player = this;
+	this.x = x;
+	this.y = y;
+	this.width = 32;
+	this.height = 32;
+	this.xvel = 0;
+	this.yvel = 8;
+	this.onGround = false;
+	this.update = function() {
+		if (this.yvel < 8){
+			this.yvel += 1;
+		}
+		if (keysDown[32] && this.onGround) {
+			this.yvel = -16
+			keysDown[32] = false;
+			this.onGround = false;
+		}
+		if (keysDown[65]) {
+			this.xvel = -8;
+		} else if (keysDown[68]) {
+			this.xvel = 8;
+		} else {
+			this.xvel = 0;
+		}
+		if (this.y > mapHeight) {
+			for (i = 0; i < map.length; i++) { 
+				for (i1 = 0; i1 < map[i].split("").length; i1++) { 
+					if (map[i].split("")[i1] == "o") {
+						new Player(i1*32, i*32);
+					}
+				}
+}
+		}
+		this.x += this.xvel;
+		this.collide(this.xvel, 0);
+		this.y += this.yvel;
+		this.collide(0, this.yvel);
+	}
+	this.render = function() {
+		ctx.fillStyle = "#00ffff"
+		ctx.fillRect(this.x - camerax, this.y - cameray, this.width, this.height);
+	}
+	this.collide = function(xvel, yvel) {
+		for (i = 0; i < blocks.length; i++) {
+			if (collision(this, blocks[i])) {
+				if (xvel > 0){
+					this.x = blocks[i].x - blocks[i].width;
+				}
+				if (xvel < 0){
+					this.x = blocks[i].x + blocks[i].width;
+				}
+				if (yvel > 0){
+					this.y = blocks[i].y - blocks[i].height;
+					this.onGround = true;
+				}
+				if (yvel < 0){
+					this.y = blocks[i].y + blocks[i].height;
+				}
+			}
+		}
+	}
+}
+
+function Block(x, y) {
+	blocks.push(this);
+	this.x = x;
+	this.y = y;
+	this.width = 32;
+	this.height = 32;
+	this.render = function() {
+		ctx.strokeStyle = "#7f7f7f"
+		ctx.strokeRect(this.x - camerax, this.y - cameray, this.width, this.height);
+	}
+}
+
+var keysDown = {};
+addEventListener("keydown", function (e) {
+keysDown[e.keyCode] = true;
+console.log(e.keyCode);
+}, false);
+addEventListener("keyup", function (e) {
+keysDown[e.keyCode] = false;
+}, false);
+
+function update() {
+	camerax = player.x + player.width/2 - canvas.width/2;
+	cameray = player.y + player.height/2 - canvas.height/2;
+	if (camerax < 0) {
+		camerax = 0;
+	}
+	if (camerax > mapWidth - canvas.width) {
+		camerax = mapWidth - canvas.width;
+	}
+	if (cameray < 0) {
+		cameray = 0;
+	}
+	if (cameray > mapHeight - canvas.height) {
+		cameray = mapHeight - canvas.height;
+	}
+	player.update();
+}
+	
+function render() {
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	player.render();
+	for (i = 0; i < blocks.length; i++) {
+		blocks[i].render();
+	}
+};
+
+function main() {
+	update();
+	render();
+	requestAnimationFrame(main);
+};
+
+var w = window;
+requestAnimationFrame = w.requestAnimationFrame || w.webkitRequestAnimationFrame || w.msRequestAnimationFrame || w.mozRequestAnimationFrame;
+
+main();
+
+</script>
+</body>
