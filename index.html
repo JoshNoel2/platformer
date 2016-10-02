@@ -4,9 +4,8 @@
 
 <body bgcolor="#2f4f4f">
 <center>
-<br><br><br>
 <canvas id="canvas" width="637" height="480">
-<center>
+</center>
 
 <script>
 
@@ -18,38 +17,49 @@ var ctx = canvas.getContext("2d");
 canvas.width  = window.innerWidth - 100;
 canvas.height = window.innerHeight - 100;
 
-var player;
 var camerax, cameray = 0;
-var blocks = [];
+
 var map = [
-"x                                                                                x   x  xxxxx  x   x      x       x  xxxxx  x   x  x          x",
-"x                                                                                x   x  x   x  x   x      x   x   x    x    xx  x  x          x",
-"x                                                                                xxxxx  x   x  x   x       x x x x     x    x x x  x          x",
-"x                                                                                  x    x   x  x   x       x x x x     x    x  xx             x",
-"x                                                                                  x    xxxxx  xxxxx        x   x    xxxxx  x   x  x          x",
-"x                                                                                                                                             x",
-"x                                                                                                                                             x",
-"x                                                    x                                                                                        x",
-"x                                 x              x                                                                                            x",
-"x                                                       x                                                                                     x",
-"x                       x                 xxx                                                                                                 x",
-"x o              xx           x                                                                                                               x",
-"xxxxxxxxxxxxxxx                                              xxxx         xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+"x                               x",
+"x                               x",
+"x                               x",
+"x                               x",
+"x                               x",
+"e                               x",
+"x                               x",
+"x                               x",
+"x                               x",
+"x             o                 x",
+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 
 ]
 var mapWidth = map[0].split("").length*32;
 var mapHeight = map.length*32;
 
-for (i = 0; i < map.length; i++) { 
-	for (i1 = 0; i1 < map[i].split("").length; i1++) { 
-		if (map[i].split("")[i1] == "x") {
-			new Block(i1*32, i*32);
-		}
-		if (map[i].split("")[i1] == "o") {
-			new Player(i1*32, i*32);
+var player, blocks, projs, enemies;
+
+function reset(map) {
+	blocks = [];
+	projs = [];
+	enemies = [];
+	for (i = 0; i < map.length; i++) { 
+		for (i1 = 0; i1 < map[i].split("").length; i1++) { 
+			if (map[i].split("")[i1] == "x") {
+				new Block(i1*32, i*32);
+			}
+			if (map[i].split("")[i1] == "o") {
+				new Player(i1*32, i*32);
+			}
+			if (map[i].split("")[i1] == "e") {
+				new Enemy(i1*32, i*32);
+				new Block(i1*32, i*32);
+			}
 		}
 	}
 }
+
+reset(map);
 
 function collision(rect1, rect2) {
 	if (rect1.x < rect2.x + rect2.width &&
@@ -86,13 +96,7 @@ function Player(x, y) {
 			this.xvel = 0;
 		}
 		if (this.y > mapHeight) {
-			for (i = 0; i < map.length; i++) { 
-				for (i1 = 0; i1 < map[i].split("").length; i1++) { 
-					if (map[i].split("")[i1] == "o") {
-						new Player(i1*32, i*32);
-					}
-				}
-}
+			reset(map);
 		}
 		this.onGround = false;
 		this.x += this.xvel;
@@ -101,25 +105,30 @@ function Player(x, y) {
 		this.collide(0, this.yvel);
 	}
 	this.render = function() {
-		ctx.fillStyle = "#00ffff"
+		ctx.fillStyle = "#00ffff";
 		ctx.fillRect(this.x - camerax, this.y - cameray, this.width, this.height);
 	}
 	this.collide = function(xvel, yvel) {
 		for (i = 0; i < blocks.length; i++) {
 			if (collision(this, blocks[i])) {
 				if (xvel > 0){
-					this.x = blocks[i].x - blocks[i].width;
+					this.x = blocks[i].x - this.width;
 				}
 				if (xvel < 0){
 					this.x = blocks[i].x + blocks[i].width;
 				}
 				if (yvel > 0){
-					this.y = blocks[i].y - blocks[i].height;
+					this.y = blocks[i].y - this.height;
 					this.onGround = true;
 				}
 				if (yvel < 0){
 					this.y = blocks[i].y + blocks[i].height;
 				}
+			}
+		}
+		for (i = 0; i < projs.length; i++) {
+			if (collision(this, projs[i])) {
+				reset(map);
 			}
 		}
 	}
@@ -131,16 +140,92 @@ function Block(x, y) {
 	this.y = y;
 	this.width = 32;
 	this.height = 32;
+	this.update = function() {
+		
+	}
 	this.render = function() {
-		ctx.strokeStyle = "#7f7f7f"
+		ctx.strokeStyle = "#7f7f7f";
 		ctx.strokeRect(this.x - camerax, this.y - cameray, this.width, this.height);
+	}
+}
+
+function Projectile(start, target, type) {
+	projs.push(this);
+	this.x = start.x;
+	this.y = start.y;
+	this.width = 10;
+	this.height = 10;
+	this.speed = 8;
+	this.type = type;
+	this.angle = Math.atan2(target.x - start.x, target.y - start.y);
+	this.sin = Math.sin(this.angle) * this.speed;
+	this.cos = Math.cos(this.angle) * this.speed;
+	this.update = function() {
+		if (this.type == "follow") {
+			this.angle = Math.atan2(target.x - this.x, target.y - this.y);
+			this.sin = Math.sin(this.angle) * this.speed;
+			this.cos = Math.cos(this.angle) * this.speed;
+			this.speed = 4;
+			this.width = this.height = 15;
+		}
+		this.x += this.sin;
+		this.y += this.cos;
+	}
+	this.render = function() {
+		ctx.fillStyle = "Orange";
+		if (this.type == "follow"){
+			ctx.fillStyle = "Red";
+		}
+		ctx.fillRect(this.x - camerax, this.y - cameray, this.width, this.height);
+	}
+}
+
+function Enemy(x, y) {
+	enemies.push(this);
+	this.x = x;
+	this.y = y;
+	this.width = 32;
+	this.height = 32;
+	this.shootCount = 0;
+	this.speed = 12;
+	this.target = null;
+	this.update = function() {
+		this.shootCount += 1;
+		if (this.shootCount == 10 && this.x-camerax >= 0 && this.x-camerax <= canvas.width) {
+			new Projectile(this, player, "direct");
+		}
+		if (this.shootCount == 30) {
+			this.target = blocks[parseInt(Math.random() * blocks.length)];
+			console.log(blocks[parseInt(Math.random() * blocks.length)].x);
+			this.angle = Math.atan2(this.target.x - this.x, this.target.y - this.y);
+			this.sin = Math.sin(this.angle) * this.speed;
+			this.cos = Math.cos(this.angle) * this.speed;
+		}
+		if (this.shootCount > 30) {
+			this.x += this.sin;
+			this.y += this.cos;
+
+			if (this.x < this.target.x + this.speed && this.x > this.target.x - this.speed) {
+				this.shootCount = 0;
+				this.x = this.target.x;
+				this.y = this.target.y;
+			}
+		}
+		
+	}
+	this.move = function(block) {
+		
+	}
+	this.render = function() {
+		ctx.fillStyle = "Orange"
+		ctx.fillRect(this.x - camerax, this.y - cameray, this.width, this.height);
 	}
 }
 
 var keysDown = {};
 addEventListener("keydown", function (e) {
 keysDown[e.keyCode] = true;
-console.log(e.keyCode);
+//console.log(e.keyCode);
 }, false);
 addEventListener("keyup", function (e) {
 keysDown[e.keyCode] = false;
@@ -162,14 +247,26 @@ function update() {
 		cameray = mapHeight - canvas.height;
 	}
 	player.update();
+	for (i = 0; i < projs.length; i++) {
+		projs[i].update();
+	}
+	for (i = 0; i < enemies.length; i++) {
+		enemies[i].update();
+	}
 }
 	
 function render() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
-	player.render();
 	for (i = 0; i < blocks.length; i++) {
 		blocks[i].render();
 	}
+	for (i = 0; i < projs.length; i++) {
+		projs[i].render();
+	}
+	for (i = 0; i < enemies.length; i++) {
+		enemies[i].render();
+	}
+	player.render();
 };
 
 function main() {
