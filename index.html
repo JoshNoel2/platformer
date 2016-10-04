@@ -18,48 +18,73 @@ canvas.width  = window.innerWidth - 100;
 canvas.height = window.innerHeight - 100;
 
 var camerax, cameray = 0;
-
-var map = [
-"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxexxxxxxxxxxxxxxxxxxx",
+var mapWidth, mapHeight;
+var level = 0;
+var levels = [
+["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+"x                                                          x",
+"x                                                          x",
+"x                                   e                      x",
+"x                                                X         x",
+"x                                                          x",
+"x                e                                         x",
 "x                                                          x",
 "x                                                          x",
 "x                                                          x",
+"x        o                                   O             x",
+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"],
+["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 "x                                                          x",
 "x                                                          x",
-"e                                                          x",
+"x           e                       e                      x",
+"x                                                X         x",
 "x                                                          x",
-"x                                                          e",
-"x                                                          x",
-"x             o                                            x",
-"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxexxxxxxxxxxxxxxxxxxxxx",
-
+"x                e    X                                    x",
+"x                              X                           x",
+"x                    x                                     x",
+"x                    X                                     x",
+"x        o           x                       O             x",
+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"],
 ]
-var mapWidth = map[0].split("").length*32;
-var mapHeight = map.length*32;
 
-var player, blocks, projs, enemies;
+var player, blocks, projs, enemies, end, eblocks;
 
-function reset(map) {
+function reset() {
+	this.map = levels[level];
+	if (this.map == null) {
+		level = 0;
+		this.map = levels[level];
+	}
 	blocks = [];
 	projs = [];
 	enemies = [];
-	for (i = 0; i < map.length; i++) { 
-		for (i1 = 0; i1 < map[i].split("").length; i1++) { 
-			if (map[i].split("")[i1] == "x") {
-				new Block(i1*32, i*32);
+	eblocks = [];
+	mapWidth = this.map[0].split("").length*32;
+	mapHeight = this.map.length*32;
+	end = player = null;
+	for (i = 0; i < this.map.length; i++) { 
+		for (i1 = 0; i1 < this.map[i].split("").length; i1++) { 
+			if (this.map[i].split("")[i1] == "x") {
+				new Block(i1*32, i*32, "regular");
 			}
-			if (map[i].split("")[i1] == "o") {
+			if (this.map[i].split("")[i1] == "o") {
 				new Player(i1*32, i*32);
 			}
-			if (map[i].split("")[i1] == "e") {
+			if (this.map[i].split("")[i1] == "e") {
 				new Enemy(i1*32, i*32);
-				new Block(i1*32, i*32);
+				new Block(i1*32, i*32, "enemy");
+			}
+			if (this.map[i].split("")[i1] == "O") {
+				new End(i1*32, i*32);
+			}
+			if (this.map[i].split("")[i1] == "X") {
+				new Block(i1*32, i*32, "enemy");
 			}
 		}
 	}
 }
 
-reset(map);
+reset();
 
 function collision(rect1, rect2) {
 	if (rect1.x < rect2.x + rect2.width &&
@@ -96,13 +121,18 @@ function Player(x, y) {
 			this.xvel = 0;
 		}
 		if (this.y > mapHeight) {
-			reset(map);
+			reset();
 		}
 		this.onGround = false;
 		this.x += this.xvel;
 		this.collide(this.xvel, 0);
 		this.y += this.yvel;
 		this.collide(0, this.yvel);
+		
+		if (collision(this, end)) {
+			level += 1;
+			reset();
+		}
 	}
 	this.render = function() {
 		ctx.fillStyle = "#00ffff";
@@ -128,24 +158,31 @@ function Player(x, y) {
 		}
 		for (i = 0; i < projs.length; i++) {
 			if (collision(this, projs[i])) {
-				reset(map);
+				reset();
 			}
 		}
 	}
 }
 
-function Block(x, y) {
+function Block(x, y, type) {
 	blocks.push(this);
+	if (type == "enemy") {
+		eblocks.push(this);
+	}
 	this.x = x;
 	this.y = y;
 	this.width = 32;
 	this.height = 32;
-	this.update = function() {
-		
-	}
+	this.type = type;
+	this.enemy = null;
 	this.render = function() {
-		ctx.strokeStyle = "#7f7f7f";
-		ctx.strokeRect(this.x - camerax, this.y - cameray, this.width, this.height);
+		if (this.type == "enemy") {
+			ctx.strokeStyle = "#7f7f7f";
+			ctx.strokeRect(this.x - camerax, this.y - cameray, this.width, this.height);
+		} else if (this.type == "regular") {
+			ctx.fillStyle = "#7f7f7f";
+			ctx.fillRect(this.x - camerax, this.y - cameray, this.width, this.height);
+		}
 	}
 }
 
@@ -195,8 +232,14 @@ function Enemy(x, y) {
 			new Projectile(this, player, "direct");
 		}
 		if (this.shootCount == 30) {
-			this.target = blocks[parseInt(Math.random() * blocks.length)];
-			console.log(blocks[parseInt(Math.random() * blocks.length)].x);
+			if (this.target != null) {
+				this.target.enemy = null;
+			}
+			this.target = eblocks[parseInt(Math.random() * eblocks.length)];
+			while (this.target.enemy != null) {
+				this.target = eblocks[parseInt(Math.random() * eblocks.length)];
+			}
+			this.target.enemy = this;
 			this.angle = Math.atan2(this.target.x - this.x, this.target.y - this.y);
 			this.sin = Math.sin(this.angle) * this.speed;
 			this.cos = Math.cos(this.angle) * this.speed;
@@ -218,6 +261,18 @@ function Enemy(x, y) {
 	}
 	this.render = function() {
 		ctx.fillStyle = "Orange"
+		ctx.fillRect(this.x - camerax, this.y - cameray, this.width, this.height);
+	}
+}
+
+function End(x, y) {
+	end = this;
+	this.x = x;
+	this.y = y;
+	this.width = 32;
+	this.height = 32;
+	this.render = function() {
+		ctx.fillStyle = "Lime"
 		ctx.fillRect(this.x - camerax, this.y - cameray, this.width, this.height);
 	}
 }
@@ -267,6 +322,7 @@ function render() {
 		enemies[i].render();
 	}
 	player.render();
+	end.render();
 };
 
 function main() {
