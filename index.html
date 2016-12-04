@@ -9,50 +9,149 @@
 
 <script>
 
-//alert("Welcome to Platformer! Made by Josh Noel!");
-
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 
 canvas.width  = window.innerWidth - 100;
 canvas.height = window.innerHeight - 100;
+//canvas.width = 1000;
+//canvas.height = 450;
 
 var camerax, cameray = 0;
 var mapWidth, mapHeight;
 var level = 0;
+var lives = 7;
 var levels = [
-["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-"x                                                          x",
-"x                                                          x",
-"x                                   e                      x",
-"x                                                X         x",
-"x                                                          x",
-"x                e                                         x",
-"x                                                          x",
-"x                                                          x",
-"x                                                          x",
-"x        o                                   O             x",
-"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"],
-["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-"x                                                          x",
-"x                                                          x",
-"x           e                       e                      x",
-"x                                                X         x",
-"x                                                          x",
-"x                e    X                                    x",
-"x                              X                           x",
-"x                    x                                     x",
-"x                    X                                     x",
-"x        o           x                       O             x",
-"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"],
-]
+["                                                            ",
+"                                                            ",
+"                                                            ",
+"                                                            ",
+"                                                            ",
+"                        xx                                  ",
+"                 xxx                         xxx            ",
+"                                                            ",
+"            xx                           xx                 ",
+"   o                        xxx                         O   ",
+"xxxxxxxxxx                          xx              xxxxxxxx"],
+
+["                                                            ",
+"                                                            ",
+"                  x                                         ",
+"                       x                                    ",
+"               x                                            ",
+"                          x         x                       ",
+"            x                 xx                            ",
+"                                        x                   ",
+"         x                                                  ",
+"   o                                         x          O   ",
+"xxxxxxxx                                           xxxxxxxxx"],
+
+["                      x       x                             ",
+"       e        x                   x                       ",
+"                                                            ",
+"                                                            ",
+"                                      x                     ",
+"                 x                                          ",
+"                            e                               ",
+"                                                            ",
+"         x                                                  ",
+"   o           x                           xxx          O   ",
+"xxxxxxxx                                           xxxxxxxxx"],
+
+["                                            e               ",
+"                                                            ",
+"       e                                                    ",
+"                                                            ",
+"                       x                                    ",
+"                 x                                          ",
+"             x              x                               ",
+"                                  x      x                  ",
+"         x                                                  ",
+"   o                  e                     xx          O   ",
+"xxxxxxxx                                           xxxxxxxxx"],
+
+["                                                            ",
+"                                   x                        ",
+"     e                      x            x                  ",
+"               e                                            ",
+"                          x                  x              ",
+"                                                            ",
+"                            x                               ",
+"                                               x            ",
+"                                                            ",
+"   o                           x                        O   ",
+"xxxxxxxx                                           xxxxxxxxx",
+"            x                          e                    ",
+"                             x                              ",
+"    e           x                                   e       ",
+"                          x                                 ",
+"                      x                                     "], 
+
+["                                                            ",
+"                                                            ",
+"                            O                               ",
+"                      xxxxxxxxxxxxxxx                       ",
+"                                          xxx               ",
+"                              xxx                           ",
+"                                    x                       ",
+"                                                            ",
+"                         x                                  ",
+"                                e                           ",
+"                                                            ",
+"                       x                                    ",
+"                   x                                        ",
+"             xxx                                            ",
+"        x                                                   ",
+"    x                                                       ",
+"                                                            ",
+"                                                            ",
+"  x                                                         ",
+"  xxx             xx              xxx                       ",
+"          xxx            xx              x                 ",
+"                                                            ",
+"                                                xxx         ",
+"                                                            ",
+"                                                            ",
+"                                                       e    ",
+"                    x      xxxxx       xxxxx                ",
+"                                                            ",
+"    e                                                       ",
+"                                                            ",
+"                xxxx                                        ",
+"                        o                                   ",
+"                       xxx                                  ",],
+
+["              e                          x                  ",
+"              x                          x                  ",
+"              x         x      x         x                  ",
+"       x      x                x         x        xxxxxx    ",
+"       x      x                x         x  x     x         ",
+"      xx      x     x          e         x        x         ",
+"       x      x                x         x        x         ",
+"x      x      x                x         x     x  x         ",
+"       x      xx               x         x        x         ",
+"   o   x      x                x         x x      x     O   ",
+"xxxxxxxx      x                x         x        xxxxxxxxxx",
+"              x       x        x                            ",
+"       exxxxxxx                x               x            ",
+"                               x                       e    ",
+"                   x           x            x               ",
+"xxxxxxxxxxxxxxx                xxxxxxxxxxx                  "]
+
+] 
 
 var player, blocks, projs, enemies, end, eblocks;
 
 function reset() {
+	if (lives < 0) {
+		lives = 7;
+		level = 0;
+	}
 	this.map = levels[level];
 	if (this.map == null) {
+		document.getElementById("ctl00_userName").innerHTML = "God";
 		level = 0;
+		lives = 7;
 		this.map = levels[level];
 	}
 	blocks = [];
@@ -106,7 +205,7 @@ function Player(x, y) {
 	this.yvel = 8;
 	this.onGround = false;
 	this.update = function() {
-		if (this.yvel < 8){
+		if (this.yvel < 12){
 			this.yvel += 1;
 		}
 		if (keysDown[32] && this.onGround) {
@@ -121,6 +220,7 @@ function Player(x, y) {
 			this.xvel = 0;
 		}
 		if (this.y > mapHeight) {
+			lives = lives - 1;
 			reset();
 		}
 		this.onGround = false;
@@ -158,6 +258,7 @@ function Player(x, y) {
 		}
 		for (i = 0; i < projs.length; i++) {
 			if (collision(this, projs[i])) {
+				lives = lives - 1;
 				reset();
 			}
 		}
@@ -192,7 +293,7 @@ function Projectile(start, target, type) {
 	this.y = start.y;
 	this.width = 10;
 	this.height = 10;
-	this.speed = 8;
+	this.speed = 4;
 	this.type = type;
 	this.angle = Math.atan2(target.x - start.x, target.y - start.y);
 	this.sin = Math.sin(this.angle) * this.speed;
@@ -228,33 +329,10 @@ function Enemy(x, y) {
 	this.target = null;
 	this.update = function() {
 		this.shootCount += 1;
-		if (this.shootCount == 10 && this.x-camerax >= 0 && this.x-camerax <= canvas.width) {
+		if (this.shootCount > 60 && this.x-camerax >= 0 && this.x-camerax <= canvas.width) {
 			new Projectile(this, player, "direct");
+			this.shootCount = 0;
 		}
-		if (this.shootCount == 30) {
-			if (this.target != null) {
-				this.target.enemy = null;
-			}
-			this.target = eblocks[parseInt(Math.random() * eblocks.length)];
-			while (this.target.enemy != null) {
-				this.target = eblocks[parseInt(Math.random() * eblocks.length)];
-			}
-			this.target.enemy = this;
-			this.angle = Math.atan2(this.target.x - this.x, this.target.y - this.y);
-			this.sin = Math.sin(this.angle) * this.speed;
-			this.cos = Math.cos(this.angle) * this.speed;
-		}
-		if (this.shootCount > 30) {
-			this.x += this.sin;
-			this.y += this.cos;
-
-			if (this.x < this.target.x + this.speed && this.x > this.target.x - this.speed) {
-				this.shootCount = 0;
-				this.x = this.target.x;
-				this.y = this.target.y;
-			}
-		}
-		
 	}
 	this.move = function(block) {
 		
@@ -323,6 +401,13 @@ function render() {
 	}
 	player.render();
 	end.render();
+	
+	ctx.fillStyle = "#7f7f7f";
+	ctx.font="20px Arial";
+	ctx.fillText("Level: " + (level+1), 10, 50);
+	ctx.fillStyle = "#7f7f7f";
+	ctx.font="20px Arial";
+	ctx.fillText("Lives: " + lives, 10, 75);
 };
 
 function main() {
